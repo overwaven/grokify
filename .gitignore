@@ -1,0 +1,7 @@
+.tgcloud/
+node_modules/
+
+# Holds the xAI API key
+tgcloud/lib/config.js
+.DS_Store
+*.log
