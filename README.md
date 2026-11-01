@@ -24,7 +24,7 @@ note back, or type `@yourbot your text` in any chat.
 2. Clone and install:
 
    ```bash
-   git clone https://github.com/evvyraine/grokify.git
+   git clone https://github.com/overwaven/grokify.git
    cd grokify
    npm install
    cp config.example.js tgcloud/lib/config.js

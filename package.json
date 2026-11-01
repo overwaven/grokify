@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/evvyraine/grokify.git"
+    "url": "https://github.com/overwaven/grokify.git"
   },
   "devDependencies": {
     "@tgcloud/cli": "^0.2.0"
