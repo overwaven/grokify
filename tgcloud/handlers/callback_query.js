@@ -1,5 +1,6 @@
 import { api } from 'sdk';
 import { getUserVoice, setUserVoice } from '../lib/store.js';
+import { getVoices } from '../lib/voice-catalog.js';
 import { isVoiceId, voiceName } from '../lib/voices.js';
 import { pickerText, voiceKeyboard } from '../lib/ui.js';
 import { DEFAULT_VOICE } from '../lib/config.js';
@@ -9,19 +10,48 @@ function pageFrom(value) {
   return Number.isFinite(page) && page >= 0 ? page : 0;
 }
 
+async function loadVoices() {
+  try {
+    return await getVoices();
+  } catch (error) {
+    console.warn('voice catalog unavailable', error?.message ?? error);
+    return [];
+  }
+}
+
 export default async function (query) {
   const data = query.data ?? '';
   const userId = query.from.id;
   const chatId = query.message?.chat?.id;
   const messageId = query.message?.message_id;
 
-  const saved = await getUserVoice(userId);
-  const currentVoice = isVoiceId(saved) ? saved : DEFAULT_VOICE;
+  if (data === 'c') {
+    await api.answerCallbackQuery({ callback_query_id: query.id });
+    if (chatId && messageId) {
+      await api.deleteMessage({ chat_id: chatId, message_id: messageId }).catch(() => {});
+    }
+    return;
+  }
+
+  if (data === 'n') {
+    await api.answerCallbackQuery({ callback_query_id: query.id });
+    return;
+  }
 
   if (data.startsWith('v:')) {
+    const voices = await loadVoices();
+
+    if (!voices.length) {
+      await api.answerCallbackQuery({
+        callback_query_id: query.id,
+        text: "Couldn't load the voice list. Try again.",
+      });
+      return;
+    }
+
     const [, voiceId, page] = data.split(':');
 
-    if (!isVoiceId(voiceId)) {
+    if (!isVoiceId(voiceId, voices)) {
       await api.answerCallbackQuery({
         callback_query_id: query.id,
         text: 'Unknown voice',
@@ -33,7 +63,7 @@ export default async function (query) {
 
     await api.answerCallbackQuery({
       callback_query_id: query.id,
-      text: `Voice: ${voiceName(voiceId)}`,
+      text: `Voice: ${voiceName(voiceId, voices)}`,
     });
 
     if (!chatId || !messageId) return;
@@ -42,9 +72,9 @@ export default async function (query) {
       await api.editMessageText({
         chat_id: chatId,
         message_id: messageId,
-        text: pickerText(voiceId),
+        text: pickerText(voiceId, voices),
         parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: voiceKeyboard(voiceId, pageFrom(page)) },
+        reply_markup: { inline_keyboard: voiceKeyboard(voices, voiceId, pageFrom(page)) },
       });
     } catch (error) {
       // "message is not modified" is harmless.
@@ -54,6 +84,19 @@ export default async function (query) {
   }
 
   if (data.startsWith('p:')) {
+    const voices = await loadVoices();
+
+    if (!voices.length) {
+      await api.answerCallbackQuery({
+        callback_query_id: query.id,
+        text: "Couldn't load the voice list. Try again.",
+      });
+      return;
+    }
+
+    const saved = await getUserVoice(userId);
+    const currentVoice = isVoiceId(saved, voices) ? saved : DEFAULT_VOICE;
+
     await api.answerCallbackQuery({ callback_query_id: query.id });
 
     if (!chatId || !messageId) return;
@@ -63,19 +106,11 @@ export default async function (query) {
         chat_id: chatId,
         message_id: messageId,
         reply_markup: {
-          inline_keyboard: voiceKeyboard(currentVoice, pageFrom(data.slice(2))),
+          inline_keyboard: voiceKeyboard(voices, currentVoice, pageFrom(data.slice(2))),
         },
       });
     } catch (error) {
       if (!/not modified/i.test(error?.description ?? '')) throw error;
-    }
-    return;
-  }
-
-  if (data === 'c') {
-    await api.answerCallbackQuery({ callback_query_id: query.id });
-    if (chatId && messageId) {
-      await api.deleteMessage({ chat_id: chatId, message_id: messageId }).catch(() => {});
     }
     return;
   }

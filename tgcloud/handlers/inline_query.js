@@ -7,6 +7,7 @@ import {
   getCachedFileId,
 } from '../lib/store.js';
 import { getInlineFileId } from '../lib/voice.js';
+import { getVoices } from '../lib/voice-catalog.js';
 import { cacheKey } from '../lib/tts.js';
 import { isVoiceId, voiceName } from '../lib/voices.js';
 import { DEFAULT_VOICE, MAX_TEXT, INLINE_RATE_LIMIT } from '../lib/config.js';
@@ -54,7 +55,11 @@ export default async function (query) {
   const stillWanted = () => isLatestInlineQuery(userId, query.id);
 
   const saved = userId ? await getUserVoice(userId) : DEFAULT_VOICE;
-  const voiceId = isVoiceId(saved) ? saved : DEFAULT_VOICE;
+  const voices = await getVoices().catch((error) => {
+    console.warn('voice catalog unavailable', error?.message ?? error);
+    return [];
+  });
+  const voiceId = voices.length && !isVoiceId(saved, voices) ? DEFAULT_VOICE : saved;
 
   if (!text) {
     const link = await botLink();
@@ -68,7 +73,7 @@ export default async function (query) {
           "Type some text — I'll voice it with Grok",
           'For example: @bot Hello, how are you?',
           link
-            ? `Type your text after the bot name and I'll send a voice note. Voice: ${voiceName(voiceId)}.`
+            ? `Type your text after the bot name and I'll send a voice note. Voice: ${voiceName(voiceId, voices)}.`
             : "Type your text after the bot name and I'll send a voice note.",
           link?.url,
           'Choose a voice',
@@ -133,7 +138,7 @@ export default async function (query) {
           type: 'voice',
           id: key,
           voice_file_id: fileId,
-          title: `${voiceName(voiceId)} · ${short}`,
+          title: `${voiceName(voiceId, voices)} · ${short}`,
         },
       ],
     });

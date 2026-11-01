@@ -8,7 +8,7 @@ note back, or type `@yourbot your text` in any chat.
 
 ## Features
 
-- All 28 official Grok voices.
+- The live xAI voice catalog, fetched and cached automatically.
 - Text normalization and automatic language detection.
 - `(voice, text)` audio cache via Telegram `file_id`.
 - Per-user rate limits.
@@ -41,17 +41,15 @@ note back, or type `@yourbot your text` in any chat.
 ## Usage
 
 - **Private chat:** send text → one voice note.
-- **Voice:** `/voice` → pick from 28 voices; the choice is saved.
+- **Voice:** `/voice` → pick any voice returned by xAI; the choice is saved.
 - **Inline:** `@yourbot your text` in any chat → tap the voice result.
 - **Help:** `/help`.
 
 ## Documentation
 
 - [Setup and BotFather](docs/SETUP.md)
-- [Architecture and inline mode](docs/ARCHITECTURE.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Security and privacy](docs/SECURITY.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ## License
 

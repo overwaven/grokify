@@ -3,8 +3,12 @@
 
 export const XAI_API_KEY = 'xai-...';
 export const XAI_TTS_URL = 'https://api.x.ai/v1/tts';
+export const XAI_VOICES_URL = 'https://api.x.ai/v1/tts/voices';
 
 export const DEFAULT_VOICE = 'eve';
+
+// The voice catalog is fetched from xAI and cached for 24 hours.
+export const VOICE_CACHE_TTL = 60 * 60 * 24;
 export const TTS_LANGUAGE = 'auto';
 
 // Per-user limits. Inline queries arrive while the user types, so the inline

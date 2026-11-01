@@ -1,5 +1,6 @@
 import { api } from 'sdk';
 import { getUserVoice, takeRateLimit } from '../lib/store.js';
+import { getVoices } from '../lib/voice-catalog.js';
 import { sendVoiceMessage } from '../lib/voice.js';
 import { isVoiceId } from '../lib/voices.js';
 import { pickerText, voiceKeyboard, welcomeText, helpText } from '../lib/ui.js';
@@ -14,6 +15,19 @@ async function botUsername() {
   }
 }
 
+async function loadVoices() {
+  try {
+    return await getVoices();
+  } catch (error) {
+    console.warn('voice catalog unavailable', error?.message ?? error);
+    return [];
+  }
+}
+
+function pickerVoiceId(saved, voices) {
+  return voices.length && !isVoiceId(saved, voices) ? DEFAULT_VOICE : saved;
+}
+
 export default async function (message) {
   // Settings and voice generation live in private chats only.
   if (message.chat?.type !== 'private' || !message.from) return;
@@ -26,11 +40,13 @@ export default async function (message) {
 
   if (text.startsWith('/')) {
     const command = text.split(/[\s@]/)[0].toLowerCase();
-    const username = await botUsername();
-    const saved = await getUserVoice(userId);
-    const voiceId = isVoiceId(saved) ? saved : DEFAULT_VOICE;
 
     if (command === '/start') {
+      const username = await botUsername();
+      const saved = await getUserVoice(userId);
+      const voices = await loadVoices();
+      const voiceId = pickerVoiceId(saved, voices);
+
       await api.setMyCommands({
         commands: [
           { command: 'voice', description: 'Choose a voice' },
@@ -38,28 +54,44 @@ export default async function (message) {
         ],
       }).catch(() => {});
 
-      await api.sendMessage({
+      const params = {
         chat_id: chatId,
-        text: welcomeText(voiceId, username),
+        text: welcomeText(voiceId, voices, username),
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true },
-        reply_markup: { inline_keyboard: voiceKeyboard(voiceId, 0) },
-      });
+      };
+      if (voices.length) {
+        params.reply_markup = { inline_keyboard: voiceKeyboard(voices, voiceId, 0) };
+      }
+      await api.sendMessage(params);
       return;
     }
 
     if (command === '/voice' || command === '/voices' || command === '/settings') {
+      const saved = await getUserVoice(userId);
+      const voices = await loadVoices();
+
+      if (!voices.length) {
+        await api.sendMessage({
+          chat_id: chatId,
+          text: "Couldn't load the voice list. Please try again in a moment.",
+        });
+        return;
+      }
+
+      const voiceId = pickerVoiceId(saved, voices);
       await api.sendMessage({
         chat_id: chatId,
-        text: pickerText(voiceId),
+        text: pickerText(voiceId, voices),
         parse_mode: 'HTML',
         link_preview_options: { is_disabled: true },
-        reply_markup: { inline_keyboard: voiceKeyboard(voiceId, 0) },
+        reply_markup: { inline_keyboard: voiceKeyboard(voices, voiceId, 0) },
       });
       return;
     }
 
     if (command === '/help') {
+      const username = await botUsername();
       await api.sendMessage({
         chat_id: chatId,
         text: helpText(username),
@@ -81,7 +113,7 @@ export default async function (message) {
   }
 
   const saved = await getUserVoice(userId);
-  const voiceId = isVoiceId(saved) ? saved : DEFAULT_VOICE;
+  const voiceId = saved || DEFAULT_VOICE;
 
   if (!(await takeRateLimit(userId, DM_RATE_LIMIT.limit, DM_RATE_LIMIT.windowSec))) {
     await api.sendMessage({
@@ -100,12 +132,12 @@ export default async function (message) {
     await sendVoiceMessage(chatId, text, voiceId);
   } catch (error) {
     console.error('voice generation failed', error);
-    await api.sendMessage({
-      chat_id: chatId,
-      text:
-        error?.status === 429
+    const errorText =
+      error?.status === 404
+        ? 'Your saved voice is no longer available. Choose another one with /voice.'
+        : error?.status === 429
           ? 'Grok TTS is busy. Please try again in a few seconds.'
-          : "Couldn't generate the voice note. Please try again.",
-    });
+          : "Couldn't generate the voice note. Please try again.";
+    await api.sendMessage({ chat_id: chatId, text: errorText });
   }
 }

@@ -1,4 +1,4 @@
-import { table, integer, text } from 'sdk/db';
+import { table, integer, text, json } from 'sdk/db';
 
 // Per-user settings. The chosen voice is used both in private chats and in
 // inline mode, because inline queries carry the same Telegram user id.
@@ -15,6 +15,14 @@ export const voiceCache = table('voice_cache', {
   fileId: text('file_id').notNull(),
   voiceId: text('voice_id').notNull(),
   createdAt: integer('created_at').notNull().default(0),
+});
+
+// The voice list from GET /v1/tts/voices, cached as JSON so the picker,
+// inline mode and the welcome screen all use the same catalog.
+export const voiceCatalog = table('voice_catalog', {
+  id: integer('id').primaryKey(),
+  payload: json('payload').notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
 });
 
 // Simple fixed-window rate limiter, keyed by Telegram user id.

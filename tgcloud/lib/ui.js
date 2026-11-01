@@ -1,14 +1,14 @@
-import { VOICES, VOICES_PER_PAGE, voicePageCount, voiceName } from './voices.js';
+import { VOICES_PER_PAGE, voicePageCount, voiceName } from './voices.js';
 
-export function pickerText(voiceId) {
+export function pickerText(voiceId, voices) {
   return [
-    `🎙 <b>Voice: ${voiceName(voiceId)}</b>`,
+    `🎙 <b>Voice: ${voiceName(voiceId, voices)}</b>`,
     '',
     'Pick a voice. It is saved for direct messages and inline mode.',
   ].join('\n');
 }
 
-export function welcomeText(voiceId, botUsername) {
+export function welcomeText(voiceId, voices, botUsername) {
   const inline = botUsername ? `@${botUsername} your text` : 'the bot name + your text';
   return [
     '🎙 <b>Grokify</b> — text to speech with Grok voices.',
@@ -16,7 +16,7 @@ export function welcomeText(voiceId, botUsername) {
     "Send me text and I'll reply with a voice note.",
     `In any chat: <code>${inline}</code>`,
     '',
-    `Current voice: <b>${voiceName(voiceId)}</b>`,
+    `Current voice: <b>${voiceName(voiceId, voices)}</b>`,
   ].join('\n');
 }
 
@@ -32,11 +32,11 @@ export function helpText(botUsername) {
   ].join('\n');
 }
 
-export function voiceKeyboard(voiceId, page) {
-  const pages = voicePageCount();
+export function voiceKeyboard(voices, voiceId, page) {
+  const pages = voicePageCount(voices);
   const safePage = Math.min(Math.max(page, 0), pages - 1);
   const start = safePage * VOICES_PER_PAGE;
-  const slice = VOICES.slice(start, start + VOICES_PER_PAGE);
+  const slice = voices.slice(start, start + VOICES_PER_PAGE);
 
   const rows = [];
   for (let i = 0; i < slice.length; i += 2) {

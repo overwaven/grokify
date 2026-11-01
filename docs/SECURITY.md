@@ -18,7 +18,7 @@
 - The **CLI access token** (`app<id>:<secret>`) is used by `tgcloud`. It is stored
   in `.tgcloud/credentials`, which is git-ignored.
 - If you regenerate the bot token, re-enable Serverless and issue a fresh CLI
-  access token. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+  access token. See [SETUP.md](SETUP.md#1-prepare-the-bot-in-botfather).
 
 ## User data
 

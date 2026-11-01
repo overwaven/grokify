@@ -82,5 +82,3 @@ npx tgcloud status      # local vs deployed
 npx tgcloud webhook     # webhook URL, allowed updates, sync state
 npx tgcloud run handlers/message '{ chat: { id: 1 }, text: "hi" }'
 ```
-
-See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common problems.

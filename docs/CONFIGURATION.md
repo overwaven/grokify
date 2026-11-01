@@ -7,33 +7,35 @@ in the repository root.
 | --- | --- | --- |
 | `XAI_API_KEY` | — | Your xAI API key. Required. |
 | `XAI_TTS_URL` | `https://api.x.ai/v1/tts` | TTS endpoint. |
-| `DEFAULT_VOICE` | `eve` | Voice used until the user picks another one. |
+| `XAI_VOICES_URL` | `https://api.x.ai/v1/tts/voices` | Voice catalog endpoint. |
+| `DEFAULT_VOICE` | `eve` | Voice used until the user picks another one. Must be a valid id from the catalog. |
 | `TTS_LANGUAGE` | `auto` | BCP-47 language code or automatic detection. |
+| `VOICE_CACHE_TTL` | 86400 | Seconds before the cached voice catalog is refreshed (24 hours). |
 | `DM_RATE_LIMIT` | 20 / 60 s | Voice requests per user in private chats. |
 | `INLINE_RATE_LIMIT` | 300 / 60 s | Inline TTS requests per user. Inline queries arrive while typing, so this bucket is large. |
 | `MAX_TEXT` | 4000 | Maximum text length accepted in private chats. |
 
 ## Voices
 
-The official voice list is in `tgcloud/lib/voices.js`:
+The picker is built from `GET https://api.x.ai/v1/tts/voices`; there is no
+hardcoded voice list in the project. `tgcloud/lib/voice-catalog.js` fetches the
+catalog, stores it as JSON in the `voice_catalog` table, and refreshes it after
+`VOICE_CACHE_TTL` seconds (24 hours by default). New or removed voices appear
+automatically after the cache expires.
 
-```text
-altair   ara     atlas    aurora   carina   castor   celeste
-cosmo    eve     helios   helix    iris     kepler   leo
-liora    lumen   luna     lux      naksh    orion    perseus
-rex      rigel   sal      sirius   ursa     zagan    zenith
+To force a refresh, delete the cached row; the next request fetches the list:
+
+```sql
+DELETE FROM voice_catalog;
 ```
 
-It mirrors `GET https://api.x.ai/v1/tts/voices`. If xAI adds or removes a voice,
-update the array. Voice ids are case-insensitive in the xAI API; Grokify stores
-the canonical lowercase id.
+`tgcloud/lib/voices.js` contains only helpers (page size, id validation, name
+lookup). `DEFAULT_VOICE` must be an id returned by the voices endpoint (`eve` is
+the xAI default). Users can override it with `/voice`; the choice is stored per
+Telegram user id.
 
-To change the default voice, set `DEFAULT_VOICE` to one of the ids above. Users
-can override it with `/voice`; the choice is stored per Telegram user id.
-
-To add a custom xAI voice, add its id to `VOICES` in `tgcloud/lib/voices.js`.
-The picker will show it like any built-in voice, and the TTS request will use the
-custom voice id.
+Custom xAI voices are not returned by the built-in voices endpoint, so they do
+not appear in the picker.
 
 ## Audio format
 
@@ -53,10 +55,11 @@ displays it as a voice note.
 
 ## Database
 
-`tgcloud/schema.js` defines four tables:
+`tgcloud/schema.js` defines five tables:
 
 - `users` — selected voice per Telegram user.
 - `voice_cache` — `file_id` by `(voice, text)` hash.
+- `voice_catalog` — JSON catalog fetched from the xAI voices endpoint.
 - `usage` — fixed-window rate limiting.
 - `inline_queries` — newest inline query id per user.
 
