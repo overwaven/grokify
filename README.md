@@ -8,9 +8,6 @@ note back, or type `@yourbot your text` in any chat.
 
 ## Features
 
-- Real `sendVoice` voice notes — no captions, no audio tracks.
-- Inline mode with `InlineQueryResultCachedVoice`.
-- Per-user voice selection (`/voice`) shared by private chats and inline mode.
 - All 28 official Grok voices.
 - Text normalization and automatic language detection.
 - `(voice, text)` audio cache via Telegram `file_id`.
@@ -58,6 +55,4 @@ note back, or type `@yourbot your text` in any chat.
 
 ## License
 
-[AGPL-3.0-only](LICENSE). Strong copyleft: distributed or network-facing
-derivatives must be released under AGPL-3.0 with source. Proprietary and
-closed-source derivatives are not permitted.
+[AGPL-3.0-only](LICENSE)
